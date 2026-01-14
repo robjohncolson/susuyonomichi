@@ -1,0 +1,17 @@
+{
+  "name": "susuyonomichi",
+  "version": "1.0.0",
+  "description": "Pipette Tip Tracker with Pong reward game for perfume formulation",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "vitest": "^2.0.0",
+    "jsdom": "^24.0.0"
+  },
+  "keywords": ["perfume", "pipette", "tracker", "pong"],
+  "license": "MIT"
+}

@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pipette Tip Tracker</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Courier New', monospace;
+        }
+        body {
+            background: #1a1a1a;
+            color: #e0e0e0;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #8a7e56;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 12px;
+        }
+        .section {
+            background: #252525;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .section h2 {
+            margin-top: 0;
+            color: #8a7e56;
+            font-size: 14px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+        .form-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .form-group label {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+        }
+        input, select {
+            background: #1a1a1a;
+            border: 1px solid #444;
+            color: #e0e0e0;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #8a7e56;
+        }
+        input[type="text"] {
+            width: 200px;
+        }
+        input[type="text"].coord {
+            width: 60px;
+            text-transform: uppercase;
+        }
+        button {
+            background: #8a7e56;
+            color: #1a1a1a;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        button:hover {
+            background: #a89866;
+        }
+        button.delete {
+            background: #553333;
+            color: #e0e0e0;
+            padding: 4px 8px;
+            font-size: 10px;
+        }
+        button.delete:hover {
+            background: #773333;
+        }
+        .search-box {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        .search-box input {
+            width: 100%;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        th {
+            text-align: left;
+            padding: 10px 8px;
+            background: #1a1a1a;
+            color: #8a7e56;
+            font-size: 11px;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+        th:hover {
+            color: #a89866;
+        }
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #333;
+        }
+        tr:hover {
+            background: #2a2a2a;
+        }
+        .tip-10 {
+            color: #66aaff;
+        }
+        .tip-100 {
+            color: #ffaa66;
+        }
+        .coord-cell {
+            font-weight: bold;
+            color: #aaffaa;
+        }
+        .empty-state {
+            text-align: center;
+            color: #666;
+            padding: 40px;
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            font-size: 12px;
+        }
+        .stat {
+            background: #1a1a1a;
+            padding: 10px 15px;
+            border-radius: 4px;
+        }
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #8a7e56;
+        }
+        .grid-view {
+            display: grid;
+            grid-template-columns: repeat(13, 1fr);
+            gap: 2px;
+            font-size: 9px;
+            margin-top: 15px;
+        }
+        .grid-cell {
+            background: #1a1a1a;
+            padding: 4px;
+            text-align: center;
+            border-radius: 2px;
+            min-height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .grid-cell.header {
+            background: #333;
+            color: #8a7e56;
+            font-weight: bold;
+        }
+        .grid-cell.occupied-10 {
+            background: #1a2a3a;
+            color: #66aaff;
+            cursor: pointer;
+        }
+        .grid-cell.occupied-100 {
+            background: #3a2a1a;
+            color: #ffaa66;
+            cursor: pointer;
+        }
+        .grid-cell.occupied-10:hover,
+        .grid-cell.occupied-100:hover {
+            opacity: 0.8;
+        }
+        .export-import {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .export-import button {
+            font-size: 11px;
+            padding: 8px 12px;
+        }
+        .tooltip {
+            position: fixed;
+            background: #333;
+            color: #e0e0e0;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1000;
+            max-width: 200px;
+        }
+        /* Pong Game Styles */
+        .pong-token {
+            color: #ff66aa;
+        }
+        #play-pong {
+            background: linear-gradient(135deg, #ff66aa, #aa66ff);
+            color: white;
+            margin-left: auto;
+            padding: 12px 20px;
+            font-size: 14px;
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+        #play-pong:hover {
+            background: linear-gradient(135deg, #ff88cc, #cc88ff);
+        }
+        #play-pong:disabled {
+            background: #444;
+            color: #666;
+            animation: none;
+            cursor: not-allowed;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 5px rgba(255, 102, 170, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(255, 102, 170, 0.8); }
+        }
+        #pong-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        #pong-overlay.active {
+            display: flex;
+        }
+        #pong-canvas {
+            border: 2px solid #333;
+            border-radius: 4px;
+        }
+        .pong-info {
+            color: #888;
+            font-size: 12px;
+            margin-top: 15px;
+            text-align: center;
+        }
+        .pong-controls {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        .pong-controls button {
+            background: #333;
+            color: #888;
+            padding: 8px 16px;
+        }
+        .pong-controls button:hover {
+            background: #444;
+            color: #aaa;
+        }
+        .token-toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #ff66aa, #aa66ff);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            z-index: 3000;
+            animation: toast-in 0.3s ease-out, toast-out 0.3s ease-in 2.7s forwards;
+        }
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        @keyframes toast-out {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Pipette Tip Tracker</h1>
+    <p class="subtitle">煤夜道 Susuyomichi Lab</p>
+
+    <div class="section">
+        <h2>Add New Tip</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Ingredient</label>
+                <input type="text" id="ingredient" placeholder="e.g., Castoreum Absolute">
+            </div>
+            <div class="form-group">
+                <label>Tip Size</label>
+                <select id="tipSize" onchange="updateCoordLabels()">
+                    <option value="10">10 µL</option>
+                    <option value="100">100 µL</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label id="coord1-label">Row</label>
+                <input type="text" id="row" class="coord" placeholder="A" maxlength="2">
+            </div>
+            <div class="form-group">
+                <label id="coord2-label">Column</label>
+                <input type="text" id="col" class="coord" placeholder="1" maxlength="2">
+            </div>
+            <div class="form-group">
+                <label>&nbsp;</label>
+                <button onclick="addTip()">Add Tip</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Find Tip</h2>
+        <div class="search-box">
+            <input type="text" id="search" placeholder="Search by ingredient name..." oninput="renderTable()">
+        </div>
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value" id="total-tips">0</div>
+                <div>Total Tips</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value tip-10" id="tips-10">0</div>
+                <div>10 µL Tips</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value tip-100" id="tips-100">0</div>
+                <div>100 µL Tips</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value pong-token" id="game-tokens">0</div>
+                <div>Game Tokens</div>
+            </div>
+            <button id="play-pong" onclick="startPong()" disabled>Play Pong!</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th onclick="sortBy('ingredient')">Ingredient ↕</th>
+                    <th onclick="sortBy('tipSize')">Size ↕</th>
+                    <th onclick="sortBy('coord')">Location ↕</th>
+                    <th onclick="sortBy('date')">Added ↕</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="tips-table">
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>Grid View (Box Layout)</h2>
+        <div class="grid-view" id="grid-view"></div>
+    </div>
+
+    <div class="section">
+        <h2>Data</h2>
+        <div class="export-import">
+            <button onclick="exportData()">Export JSON</button>
+            <button onclick="document.getElementById('importFile').click()">Import JSON</button>
+            <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+            <button onclick="clearAll()" style="background:#553333;color:#e0e0e0;">Clear All</button>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip" style="display:none;"></div>
+
+    <!-- Pong Game Overlay -->
+    <div id="pong-overlay">
+        <canvas id="pong-canvas" width="500" height="300"></canvas>
+        <div class="pong-info">
+            <div>Controls: W/S or Arrow Keys | First to 5 wins</div>
+        </div>
+        <div class="pong-controls">
+            <button onclick="closePong()">Quit Game</button>
+        </div>
+    </div>
+
+    <script>
+        let tips = JSON.parse(localStorage.getItem('pipetteTips') || '[]');
+        let sortField = 'ingredient';
+        let sortAsc = true;
+
+        // Pong game token system
+        let gameTokens = parseInt(localStorage.getItem('pongTokens') || '0');
+        let tipsAddedCount = parseInt(localStorage.getItem('tipsAddedCount') || '0');
+        const TIPS_PER_TOKEN = 5;
+
+        function save() {
+            localStorage.setItem('pipetteTips', JSON.stringify(tips));
+        }
+
+        function updateCoordLabels() {
+            const tipSize = document.getElementById('tipSize').value;
+            const label1 = document.getElementById('coord1-label');
+            const label2 = document.getElementById('coord2-label');
+            const input1 = document.getElementById('row');
+            const input2 = document.getElementById('col');
+
+            if (tipSize === '100') {
+                // 100µL: columns A-L, rows 1-8
+                label1.textContent = 'Column';
+                label2.textContent = 'Row';
+                input1.placeholder = 'A';
+                input2.placeholder = '1';
+            } else {
+                // 10µL: rows A-H, columns 1-12
+                label1.textContent = 'Row';
+                label2.textContent = 'Column';
+                input1.placeholder = 'A';
+                input2.placeholder = '1';
+            }
+        }
+
+        function addTip() {
+            const ingredient = document.getElementById('ingredient').value.trim();
+            const tipSize = document.getElementById('tipSize').value;
+            const row = document.getElementById('row').value.trim().toUpperCase();
+            const col = document.getElementById('col').value.trim();
+
+            if (!ingredient || !row || !col) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            const coord = row + col;
+            const tipSizeInt = parseInt(tipSize);
+
+            // Check if coordinate already occupied in the SAME box (same tip size)
+            const existing = tips.find(t => t.coord === coord && t.tipSize === tipSizeInt);
+            if (existing) {
+                if (!confirm(`Location ${coord} in ${tipSize}µL box already has "${existing.ingredient}". Replace?`)) {
+                    return;
+                }
+                tips = tips.filter(t => !(t.coord === coord && t.tipSize === tipSizeInt));
+            }
+
+            tips.push({
+                ingredient,
+                tipSize: parseInt(tipSize),
+                row,
+                col,
+                coord,
+                date: new Date().toISOString()
+            });
+
+            save();
+            renderTable();
+            renderGrid();
+
+            // Award game token every N tips
+            tipsAddedCount++;
+            localStorage.setItem('tipsAddedCount', tipsAddedCount);
+            if (tipsAddedCount % TIPS_PER_TOKEN === 0) {
+                gameTokens++;
+                localStorage.setItem('pongTokens', gameTokens);
+                updateTokenDisplay();
+                showTokenToast();
+            }
+
+            // Clear inputs
+            document.getElementById('ingredient').value = '';
+            document.getElementById('row').value = '';
+            document.getElementById('col').value = '';
+            document.getElementById('ingredient').focus();
+        }
+
+        function deleteTip(coord, tipSize) {
+            if (confirm('Delete this tip entry?')) {
+                tips = tips.filter(t => !(t.coord === coord && t.tipSize === tipSize));
+                save();
+                renderTable();
+                renderGrid();
+            }
+        }
+
+        function sortBy(field) {
+            if (sortField === field) {
+                sortAsc = !sortAsc;
+            } else {
+                sortField = field;
+                sortAsc = true;
+            }
+            renderTable();
+        }
+
+        function renderTable() {
+            const search = document.getElementById('search').value.toLowerCase();
+            let filtered = tips.filter(t => t.ingredient.toLowerCase().includes(search));
+
+            filtered.sort((a, b) => {
+                let valA = a[sortField];
+                let valB = b[sortField];
+                if (typeof valA === 'string') valA = valA.toLowerCase();
+                if (typeof valB === 'string') valB = valB.toLowerCase();
+                if (valA < valB) return sortAsc ? -1 : 1;
+                if (valA > valB) return sortAsc ? 1 : -1;
+                return 0;
+            });
+
+            const tbody = document.getElementById('tips-table');
+            
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No tips found</td></tr>';
+            } else {
+                tbody.innerHTML = filtered.map(t => `
+                    <tr>
+                        <td>${t.ingredient}</td>
+                        <td class="tip-${t.tipSize}">${t.tipSize} µL</td>
+                        <td class="coord-cell">${t.coord}</td>
+                        <td>${new Date(t.date).toLocaleDateString()}</td>
+                        <td><button class="delete" onclick="deleteTip('${t.coord}', ${t.tipSize})">×</button></td>
+                    </tr>
+                `).join('');
+            }
+
+            // Update stats
+            document.getElementById('total-tips').textContent = tips.length;
+            document.getElementById('tips-10').textContent = tips.filter(t => t.tipSize === 10).length;
+            document.getElementById('tips-100').textContent = tips.filter(t => t.tipSize === 100).length;
+        }
+
+        function renderGrid() {
+            // Grid layout: 8 rows x 12 columns
+            // 10µL convention: rows A-H, columns 1-12 (coord = rowLetter + colNumber)
+            // 100µL convention: columns A-L, rows 1-8 (coord = colLetter + rowNumber)
+            const rowLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+            const colNumbers = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
+            const colLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+            const rowNumbers = ['1', '2', '3', '4', '5', '6', '7', '8'];
+
+            const grid = document.getElementById('grid-view');
+            let html = '';
+
+            // Header row (show both conventions)
+            html += '<div class="grid-cell header"></div>'; // Corner
+            for (let c = 0; c < 12; c++) {
+                html += `<div class="grid-cell header">${colNumbers[c]}<br><span style="color:#ffaa66;font-size:8px">${colLetters[c]}</span></div>`;
+            }
+
+            // Data rows
+            for (let r = 0; r < 8; r++) {
+                // Row header (show both conventions)
+                html += `<div class="grid-cell header">${rowLetters[r]}<br><span style="color:#ffaa66;font-size:8px">${rowNumbers[r]}</span></div>`;
+
+                for (let c = 0; c < 12; c++) {
+                    // Look for tip at this grid position
+                    // 10µL: coord = rowLetter + colNumber (e.g., "A1")
+                    const coord10 = rowLetters[r] + colNumbers[c];
+                    // 100µL: coord = colLetter + rowNumber (e.g., "A1" for col A, row 1)
+                    const coord100 = colLetters[c] + rowNumbers[r];
+
+                    const tip = tips.find(t =>
+                        (t.tipSize === 10 && t.coord === coord10) ||
+                        (t.tipSize === 100 && t.coord === coord100)
+                    );
+
+                    if (tip) {
+                        const shortName = tip.ingredient.length > 8
+                            ? tip.ingredient.substring(0, 7) + '…'
+                            : tip.ingredient;
+                        html += `<div class="grid-cell occupied-${tip.tipSize}"
+                                    onmouseenter="showTooltip(event, '${tip.ingredient} (${tip.tipSize}µL) @ ${tip.coord}')"
+                                    onmouseleave="hideTooltip()"
+                                    onclick="highlightIngredient('${tip.ingredient}')">${shortName}</div>`;
+                    } else {
+                        html += `<div class="grid-cell"></div>`;
+                    }
+                }
+            }
+
+            grid.innerHTML = html;
+        }
+
+        function showTooltip(event, text) {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.textContent = text;
+            tooltip.style.display = 'block';
+            tooltip.style.left = (event.pageX + 10) + 'px';
+            tooltip.style.top = (event.pageY + 10) + 'px';
+        }
+
+        function hideTooltip() {
+            document.getElementById('tooltip').style.display = 'none';
+        }
+
+        function highlightIngredient(ingredient) {
+            document.getElementById('search').value = ingredient;
+            renderTable();
+        }
+
+        function exportData() {
+            const blob = new Blob([JSON.stringify(tips, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'pipette-tips-' + new Date().toISOString().split('T')[0] + '.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (Array.isArray(imported)) {
+                        if (confirm(`Import ${imported.length} tips? This will merge with existing data.`)) {
+                            // Merge, replacing duplicates by coord
+                            imported.forEach(imp => {
+                                tips = tips.filter(t => t.coord !== imp.coord);
+                                tips.push(imp);
+                            });
+                            save();
+                            renderTable();
+                            renderGrid();
+                        }
+                    }
+                } catch (err) {
+                    alert('Invalid JSON file');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function clearAll() {
+            if (confirm('Delete ALL tip entries? This cannot be undone.')) {
+                tips = [];
+                save();
+                renderTable();
+                renderGrid();
+            }
+        }
+
+        // ============================================
+        // PONG GAME
+        // ============================================
+
+        function updateTokenDisplay() {
+            document.getElementById('game-tokens').textContent = gameTokens;
+            const playBtn = document.getElementById('play-pong');
+            playBtn.disabled = gameTokens < 1;
+        }
+
+        function showTokenToast() {
+            const toast = document.createElement('div');
+            toast.className = 'token-toast';
+            toast.textContent = 'Game Token Earned!';
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Pong game state
+        let pongGame = null;
+        let pongAnimationId = null;
+        let pongAudioCtx = null;
+
+        const PONG = {
+            width: 500,
+            height: 300,
+            paddleWidth: 12,
+            paddleHeight: 70,
+            paddleSpeed: 6,
+            paddleMargin: 15,
+            ballSize: 10,
+            ballSpeedInitial: 4,
+            ballSpeedIncrement: 0.15,
+            ballSpeedMax: 8,
+            pointsToWin: 5,
+            countdownSeconds: 3,
+            colors: {
+                background: '#0a0a1a',
+                centerLine: '#333',
+                playerPaddle: '#ff66aa',
+                aiPaddle: '#66aaff',
+                ball: '#ffffff',
+                scoreText: '#8a7e56',
+                countdown: '#ff66aa'
+            }
+        };
+
+        function startPong() {
+            if (gameTokens < 1) return;
+
+            // Initialize game state
+            pongGame = {
+                phase: 'countdown',
+                countdown: PONG.countdownSeconds,
+                player: { y: PONG.height / 2 - PONG.paddleHeight / 2 },
+                ai: { y: PONG.height / 2 - PONG.paddleHeight / 2, targetY: PONG.height / 2 },
+                ball: {
+                    x: PONG.width / 2 - PONG.ballSize / 2,
+                    y: PONG.height / 2 - PONG.ballSize / 2,
+                    vx: 0,
+                    vy: 0,
+                    speed: PONG.ballSpeedInitial
+                },
+                score: { player: 0, ai: 0 },
+                input: { up: false, down: false },
+                lastTime: performance.now()
+            };
+
+            // Show overlay
+            document.getElementById('pong-overlay').classList.add('active');
+
+            // Initialize audio
+            if (!pongAudioCtx) {
+                pongAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            // Setup controls
+            document.addEventListener('keydown', pongKeyDown);
+            document.addEventListener('keyup', pongKeyUp);
+
+            // Start game loop
+            pongAnimationId = requestAnimationFrame(pongLoop);
+        }
+
+        function closePong() {
+            // Stop game
+            if (pongAnimationId) {
+                cancelAnimationFrame(pongAnimationId);
+                pongAnimationId = null;
+            }
+            pongGame = null;
+
+            // Remove controls
+            document.removeEventListener('keydown', pongKeyDown);
+            document.removeEventListener('keyup', pongKeyUp);
+
+            // Hide overlay
+            document.getElementById('pong-overlay').classList.remove('active');
+        }
+
+        function pongKeyDown(e) {
+            if (!pongGame) return;
+            if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                pongGame.input.up = true;
+            }
+            if (e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                pongGame.input.down = true;
+            }
+            if (e.key === 'Escape') {
+                closePong();
+            }
+        }
+
+        function pongKeyUp(e) {
+            if (!pongGame) return;
+            if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') {
+                pongGame.input.up = false;
+            }
+            if (e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') {
+                pongGame.input.down = false;
+            }
+        }
+
+        function pongLoop(timestamp) {
+            if (!pongGame) return;
+
+            const deltaTime = (timestamp - pongGame.lastTime) / 1000;
+            pongGame.lastTime = timestamp;
+
+            // Update based on phase
+            if (pongGame.phase === 'countdown') {
+                pongGame.countdown -= deltaTime;
+                if (pongGame.countdown <= 0) {
+                    pongGame.phase = 'playing';
+                    serveBall();
+                }
+            } else if (pongGame.phase === 'playing') {
+                updatePong(deltaTime);
+            }
+
+            // Render
+            renderPong();
+
+            // Continue loop
+            if (pongGame.phase !== 'finished') {
+                pongAnimationId = requestAnimationFrame(pongLoop);
+            }
+        }
+
+        function serveBall() {
+            const angle = (Math.random() * 0.8 - 0.4); // -0.4 to 0.4 radians
+            const direction = Math.random() > 0.5 ? 1 : -1;
+            pongGame.ball.x = PONG.width / 2 - PONG.ballSize / 2;
+            pongGame.ball.y = PONG.height / 2 - PONG.ballSize / 2;
+            pongGame.ball.speed = PONG.ballSpeedInitial;
+            pongGame.ball.vx = direction * pongGame.ball.speed * Math.cos(angle);
+            pongGame.ball.vy = pongGame.ball.speed * Math.sin(angle);
+        }
+
+        function updatePong(dt) {
+            const g = pongGame;
+            const frameSpeed = 60 * dt; // Normalize to 60fps
+
+            // Player paddle movement
+            if (g.input.up) {
+                g.player.y -= PONG.paddleSpeed * frameSpeed;
+            }
+            if (g.input.down) {
+                g.player.y += PONG.paddleSpeed * frameSpeed;
+            }
+            g.player.y = Math.max(0, Math.min(PONG.height - PONG.paddleHeight, g.player.y));
+
+            // AI paddle - challenging: predicts ball trajectory
+            updateAI(dt);
+
+            // Ball movement
+            g.ball.x += g.ball.vx * frameSpeed;
+            g.ball.y += g.ball.vy * frameSpeed;
+
+            // Ball collision with top/bottom walls
+            if (g.ball.y <= 0) {
+                g.ball.y = 0;
+                g.ball.vy = Math.abs(g.ball.vy);
+                playPongSound(300, 0.05);
+            }
+            if (g.ball.y >= PONG.height - PONG.ballSize) {
+                g.ball.y = PONG.height - PONG.ballSize;
+                g.ball.vy = -Math.abs(g.ball.vy);
+                playPongSound(300, 0.05);
+            }
+
+            // Player paddle collision (left side)
+            const playerPaddleX = PONG.paddleMargin;
+            if (g.ball.x <= playerPaddleX + PONG.paddleWidth &&
+                g.ball.x >= playerPaddleX &&
+                g.ball.vx < 0) {
+                const paddleCenter = g.player.y + PONG.paddleHeight / 2;
+                const ballCenter = g.ball.y + PONG.ballSize / 2;
+                if (ballCenter >= g.player.y && ballCenter <= g.player.y + PONG.paddleHeight) {
+                    // Hit! Calculate reflection angle based on where ball hit paddle
+                    const hitPos = (ballCenter - paddleCenter) / (PONG.paddleHeight / 2);
+                    const angle = hitPos * 0.8; // Max angle ~45 degrees
+                    g.ball.speed = Math.min(PONG.ballSpeedMax, g.ball.speed + PONG.ballSpeedIncrement);
+                    g.ball.vx = g.ball.speed * Math.cos(angle);
+                    g.ball.vy = g.ball.speed * Math.sin(angle);
+                    g.ball.x = playerPaddleX + PONG.paddleWidth;
+                    playPongSound(440, 0.08);
+                }
+            }
+
+            // AI paddle collision (right side)
+            const aiPaddleX = PONG.width - PONG.paddleMargin - PONG.paddleWidth;
+            if (g.ball.x >= aiPaddleX - PONG.ballSize &&
+                g.ball.x <= aiPaddleX &&
+                g.ball.vx > 0) {
+                const paddleCenter = g.ai.y + PONG.paddleHeight / 2;
+                const ballCenter = g.ball.y + PONG.ballSize / 2;
+                if (ballCenter >= g.ai.y && ballCenter <= g.ai.y + PONG.paddleHeight) {
+                    const hitPos = (ballCenter - paddleCenter) / (PONG.paddleHeight / 2);
+                    const angle = Math.PI - hitPos * 0.8;
+                    g.ball.speed = Math.min(PONG.ballSpeedMax, g.ball.speed + PONG.ballSpeedIncrement);
+                    g.ball.vx = -g.ball.speed * Math.cos(hitPos * 0.8);
+                    g.ball.vy = g.ball.speed * Math.sin(hitPos * 0.8);
+                    g.ball.x = aiPaddleX - PONG.ballSize;
+                    playPongSound(440, 0.08);
+                }
+            }
+
+            // Scoring
+            if (g.ball.x < 0) {
+                // AI scores
+                g.score.ai++;
+                playPongSound(220, 0.2);
+                checkWin();
+                if (g.phase === 'playing') {
+                    setTimeout(serveBall, 500);
+                }
+            }
+            if (g.ball.x > PONG.width) {
+                // Player scores
+                g.score.player++;
+                playPongSound(660, 0.2);
+                checkWin();
+                if (g.phase === 'playing') {
+                    setTimeout(serveBall, 500);
+                }
+            }
+        }
+
+        function updateAI(dt) {
+            const g = pongGame;
+            const frameSpeed = 60 * dt;
+
+            // Predict where ball will intersect AI's x position
+            if (g.ball.vx > 0) {
+                // Ball coming toward AI - predict trajectory
+                const aiX = PONG.width - PONG.paddleMargin - PONG.paddleWidth;
+                const timeToReach = (aiX - g.ball.x) / g.ball.vx;
+                let predictedY = g.ball.y + g.ball.vy * timeToReach;
+
+                // Account for bounces
+                while (predictedY < 0 || predictedY > PONG.height - PONG.ballSize) {
+                    if (predictedY < 0) {
+                        predictedY = -predictedY;
+                    }
+                    if (predictedY > PONG.height - PONG.ballSize) {
+                        predictedY = 2 * (PONG.height - PONG.ballSize) - predictedY;
+                    }
+                }
+
+                // Add small random offset to make AI beatable (±15px)
+                g.ai.targetY = predictedY - PONG.paddleHeight / 2 + (Math.random() - 0.5) * 30;
+            } else {
+                // Ball going away - return toward center with some lag
+                g.ai.targetY = PONG.height / 2 - PONG.paddleHeight / 2;
+            }
+
+            // Move toward target at 90% of max speed
+            const aiSpeed = PONG.paddleSpeed * 0.9;
+            const diff = g.ai.targetY - g.ai.y;
+            if (Math.abs(diff) > 2) {
+                g.ai.y += Math.sign(diff) * Math.min(Math.abs(diff), aiSpeed * frameSpeed);
+            }
+            g.ai.y = Math.max(0, Math.min(PONG.height - PONG.paddleHeight, g.ai.y));
+        }
+
+        function checkWin() {
+            const g = pongGame;
+            if (g.score.player >= PONG.pointsToWin || g.score.ai >= PONG.pointsToWin) {
+                g.phase = 'finished';
+
+                // Consume token
+                gameTokens--;
+                localStorage.setItem('pongTokens', gameTokens);
+                updateTokenDisplay();
+
+                // Play win/lose sound
+                if (g.score.player >= PONG.pointsToWin) {
+                    playPongWinSound();
+                } else {
+                    playPongLoseSound();
+                }
+
+                // Show result for 3 seconds then close
+                setTimeout(closePong, 3000);
+            }
+        }
+
+        function renderPong() {
+            const canvas = document.getElementById('pong-canvas');
+            const ctx = canvas.getContext('2d');
+            const g = pongGame;
+
+            // Background
+            ctx.fillStyle = PONG.colors.background;
+            ctx.fillRect(0, 0, PONG.width, PONG.height);
+
+            // Center line
+            ctx.strokeStyle = PONG.colors.centerLine;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([10, 10]);
+            ctx.beginPath();
+            ctx.moveTo(PONG.width / 2, 0);
+            ctx.lineTo(PONG.width / 2, PONG.height);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Player paddle (left)
+            ctx.fillStyle = PONG.colors.playerPaddle;
+            ctx.shadowColor = PONG.colors.playerPaddle;
+            ctx.shadowBlur = 15;
+            ctx.fillRect(PONG.paddleMargin, g.player.y, PONG.paddleWidth, PONG.paddleHeight);
+            ctx.shadowBlur = 0;
+
+            // AI paddle (right)
+            ctx.fillStyle = PONG.colors.aiPaddle;
+            ctx.shadowColor = PONG.colors.aiPaddle;
+            ctx.shadowBlur = 15;
+            ctx.fillRect(PONG.width - PONG.paddleMargin - PONG.paddleWidth, g.ai.y, PONG.paddleWidth, PONG.paddleHeight);
+            ctx.shadowBlur = 0;
+
+            // Ball
+            ctx.fillStyle = PONG.colors.ball;
+            ctx.shadowColor = PONG.colors.ball;
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.arc(g.ball.x + PONG.ballSize / 2, g.ball.y + PONG.ballSize / 2, PONG.ballSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Score
+            ctx.fillStyle = PONG.colors.scoreText;
+            ctx.font = 'bold 36px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText(g.score.player.toString(), PONG.width / 4, 15);
+            ctx.fillText(g.score.ai.toString(), PONG.width * 3 / 4, 15);
+
+            // Labels
+            ctx.font = '12px monospace';
+            ctx.fillStyle = PONG.colors.playerPaddle;
+            ctx.fillText('YOU', PONG.width / 4, PONG.height - 20);
+            ctx.fillStyle = PONG.colors.aiPaddle;
+            ctx.fillText('AI', PONG.width * 3 / 4, PONG.height - 20);
+
+            // Countdown overlay
+            if (g.phase === 'countdown') {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, PONG.width, PONG.height);
+
+                ctx.fillStyle = PONG.colors.countdown;
+                ctx.font = 'bold 72px monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const num = Math.ceil(g.countdown);
+                ctx.fillText(num > 0 ? num.toString() : 'GO!', PONG.width / 2, PONG.height / 2);
+            }
+
+            // Result overlay
+            if (g.phase === 'finished') {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+                ctx.fillRect(0, 0, PONG.width, PONG.height);
+
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                if (g.score.player >= PONG.pointsToWin) {
+                    ctx.fillStyle = '#00ff00';
+                    ctx.font = 'bold 48px monospace';
+                    ctx.fillText('YOU WIN!', PONG.width / 2, PONG.height / 2 - 20);
+                } else {
+                    ctx.fillStyle = '#ff4444';
+                    ctx.font = 'bold 48px monospace';
+                    ctx.fillText('AI WINS', PONG.width / 2, PONG.height / 2 - 20);
+                }
+
+                ctx.fillStyle = '#888';
+                ctx.font = '20px monospace';
+                ctx.fillText(`${g.score.player} - ${g.score.ai}`, PONG.width / 2, PONG.height / 2 + 30);
+            }
+        }
+
+        function playPongSound(freq, duration) {
+            if (!pongAudioCtx) return;
+            try {
+                const osc = pongAudioCtx.createOscillator();
+                const gain = pongAudioCtx.createGain();
+                osc.type = 'square';
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.15, pongAudioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, pongAudioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(pongAudioCtx.destination);
+                osc.start();
+                osc.stop(pongAudioCtx.currentTime + duration);
+            } catch (e) {}
+        }
+
+        function playPongWinSound() {
+            if (!pongAudioCtx) return;
+            [523, 659, 784].forEach((freq, i) => {
+                setTimeout(() => playPongSound(freq, 0.2), i * 100);
+            });
+        }
+
+        function playPongLoseSound() {
+            if (!pongAudioCtx) return;
+            [294, 247].forEach((freq, i) => {
+                setTimeout(() => playPongSound(freq, 0.3), i * 150);
+            });
+        }
+
+        // Initialize
+        renderTable();
+        renderGrid();
+        updateTokenDisplay();
+
+        // Enter key to add
+        document.getElementById('col').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') addTip();
+        });
+        document.getElementById('ingredient').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') document.getElementById('row').focus();
+        });
+    </script>
+</body>
+</html>
