@@ -404,7 +404,7 @@
     <div id="pong-overlay">
         <canvas id="pong-canvas" width="500" height="300"></canvas>
         <div class="pong-info">
-            <div>Controls: W/S or Arrow Keys | First to 5 wins</div>
+            <div>Controls: W/S or Arrow Keys | Best of 3 rounds (first to 5 each)</div>
         </div>
         <div class="pong-controls">
             <button onclick="closePong()">Quit Game</button>
@@ -744,7 +744,9 @@
             ballSpeedIncrement: 0.15,
             ballSpeedMax: 8,
             pointsToWin: 5,
+            roundsToWin: 2,  // Best of 3
             countdownSeconds: 3,
+            roundBreakSeconds: 2,
             colors: {
                 background: '#0a0a1a',
                 centerLine: '#333',
@@ -752,7 +754,9 @@
                 aiPaddle: '#66aaff',
                 ball: '#ffffff',
                 scoreText: '#8a7e56',
-                countdown: '#ff66aa'
+                countdown: '#ff66aa',
+                roundWin: '#00ff00',
+                roundLose: '#ff4444'
             }
         };
 
@@ -761,7 +765,7 @@
 
             // Initialize game state
             pongGame = {
-                phase: 'countdown',
+                phase: 'countdown',  // countdown, playing, roundEnd, finished
                 countdown: PONG.countdownSeconds,
                 player: { y: PONG.height / 2 - PONG.paddleHeight / 2 },
                 ai: { y: PONG.height / 2 - PONG.paddleHeight / 2, targetY: PONG.height / 2 },
@@ -772,7 +776,10 @@
                     vy: 0,
                     speed: PONG.ballSpeedInitial
                 },
-                score: { player: 0, ai: 0 },
+                score: { player: 0, ai: 0 },        // Points this round
+                rounds: { player: 0, ai: 0 },       // Rounds won
+                currentRound: 1,
+                roundWinner: null,                   // 'player' or 'ai' when round ends
                 input: { up: false, down: false },
                 lastTime: performance.now()
             };
@@ -849,6 +856,11 @@
                 }
             } else if (pongGame.phase === 'playing') {
                 updatePong(deltaTime);
+            } else if (pongGame.phase === 'roundEnd') {
+                pongGame.countdown -= deltaTime;
+                if (pongGame.countdown <= 0) {
+                    startNextRound();
+                }
             }
 
             // Render
@@ -858,6 +870,24 @@
             if (pongGame.phase !== 'finished') {
                 pongAnimationId = requestAnimationFrame(pongLoop);
             }
+        }
+
+        function startNextRound() {
+            const g = pongGame;
+            g.currentRound++;
+            g.score = { player: 0, ai: 0 };
+            g.roundWinner = null;
+            g.ball = {
+                x: PONG.width / 2 - PONG.ballSize / 2,
+                y: PONG.height / 2 - PONG.ballSize / 2,
+                vx: 0,
+                vy: 0,
+                speed: PONG.ballSpeedInitial
+            };
+            g.player.y = PONG.height / 2 - PONG.paddleHeight / 2;
+            g.ai.y = PONG.height / 2 - PONG.paddleHeight / 2;
+            g.phase = 'countdown';
+            g.countdown = PONG.countdownSeconds;
         }
 
         function serveBall() {
@@ -999,7 +1029,22 @@
 
         function checkWin() {
             const g = pongGame;
-            if (g.score.player >= PONG.pointsToWin || g.score.ai >= PONG.pointsToWin) {
+
+            // Check if someone won this round
+            if (g.score.player >= PONG.pointsToWin) {
+                g.rounds.player++;
+                g.roundWinner = 'player';
+                playPongSound(660, 0.15);
+            } else if (g.score.ai >= PONG.pointsToWin) {
+                g.rounds.ai++;
+                g.roundWinner = 'ai';
+                playPongSound(220, 0.15);
+            } else {
+                return; // Round not over
+            }
+
+            // Check if someone won the match (best of 3)
+            if (g.rounds.player >= PONG.roundsToWin || g.rounds.ai >= PONG.roundsToWin) {
                 g.phase = 'finished';
 
                 // Consume token
@@ -1008,7 +1053,7 @@
                 updateTokenDisplay();
 
                 // Play win/lose sound
-                if (g.score.player >= PONG.pointsToWin) {
+                if (g.rounds.player >= PONG.roundsToWin) {
                     playPongWinSound();
                 } else {
                     playPongLoseSound();
@@ -1016,6 +1061,10 @@
 
                 // Show result for 3 seconds then close
                 setTimeout(closePong, 3000);
+            } else {
+                // Round over, but match continues
+                g.phase = 'roundEnd';
+                g.countdown = PONG.roundBreakSeconds;
             }
         }
 
@@ -1076,6 +1125,33 @@
             ctx.fillStyle = PONG.colors.aiPaddle;
             ctx.fillText('AI', PONG.width * 3 / 4, PONG.height - 20);
 
+            // Round score (shown at top center)
+            ctx.font = '14px monospace';
+            ctx.fillStyle = '#888';
+            ctx.fillText(`Round ${g.currentRound} · Best of 3`, PONG.width / 2, 12);
+
+            // Rounds won indicators
+            ctx.font = '16px monospace';
+            const roundY = 70;
+            // Player rounds
+            ctx.fillStyle = PONG.colors.playerPaddle;
+            for (let i = 0; i < g.rounds.player; i++) {
+                ctx.fillText('●', PONG.width / 4 - 20 + i * 20, roundY);
+            }
+            for (let i = g.rounds.player; i < PONG.roundsToWin; i++) {
+                ctx.fillStyle = '#333';
+                ctx.fillText('○', PONG.width / 4 - 20 + i * 20, roundY);
+            }
+            // AI rounds
+            ctx.fillStyle = PONG.colors.aiPaddle;
+            for (let i = 0; i < g.rounds.ai; i++) {
+                ctx.fillText('●', PONG.width * 3 / 4 - 20 + i * 20, roundY);
+            }
+            for (let i = g.rounds.ai; i < PONG.roundsToWin; i++) {
+                ctx.fillStyle = '#333';
+                ctx.fillText('○', PONG.width * 3 / 4 - 20 + i * 20, roundY);
+            }
+
             // Countdown overlay
             if (g.phase === 'countdown') {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -1087,6 +1163,35 @@
                 ctx.textBaseline = 'middle';
                 const num = Math.ceil(g.countdown);
                 ctx.fillText(num > 0 ? num.toString() : 'GO!', PONG.width / 2, PONG.height / 2);
+
+                // Show round number
+                ctx.font = '20px monospace';
+                ctx.fillStyle = '#888';
+                ctx.fillText(`Round ${g.currentRound}`, PONG.width / 2, PONG.height / 2 + 60);
+            }
+
+            // Round end overlay
+            if (g.phase === 'roundEnd') {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                ctx.fillRect(0, 0, PONG.width, PONG.height);
+
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                if (g.roundWinner === 'player') {
+                    ctx.fillStyle = PONG.colors.roundWin;
+                    ctx.font = 'bold 36px monospace';
+                    ctx.fillText('ROUND WON!', PONG.width / 2, PONG.height / 2 - 20);
+                } else {
+                    ctx.fillStyle = PONG.colors.roundLose;
+                    ctx.font = 'bold 36px monospace';
+                    ctx.fillText('ROUND LOST', PONG.width / 2, PONG.height / 2 - 20);
+                }
+
+                ctx.fillStyle = '#888';
+                ctx.font = '18px monospace';
+                ctx.fillText(`Rounds: ${g.rounds.player} - ${g.rounds.ai}`, PONG.width / 2, PONG.height / 2 + 20);
+                ctx.fillText('Next round starting...', PONG.width / 2, PONG.height / 2 + 50);
             }
 
             // Result overlay
@@ -1097,19 +1202,23 @@
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
 
-                if (g.score.player >= PONG.pointsToWin) {
+                if (g.rounds.player >= PONG.roundsToWin) {
                     ctx.fillStyle = '#00ff00';
                     ctx.font = 'bold 48px monospace';
-                    ctx.fillText('YOU WIN!', PONG.width / 2, PONG.height / 2 - 20);
+                    ctx.fillText('YOU WIN!', PONG.width / 2, PONG.height / 2 - 30);
+                    ctx.font = '24px monospace';
+                    ctx.fillText('MATCH VICTORY', PONG.width / 2, PONG.height / 2 + 10);
                 } else {
                     ctx.fillStyle = '#ff4444';
                     ctx.font = 'bold 48px monospace';
-                    ctx.fillText('AI WINS', PONG.width / 2, PONG.height / 2 - 20);
+                    ctx.fillText('AI WINS', PONG.width / 2, PONG.height / 2 - 30);
+                    ctx.font = '24px monospace';
+                    ctx.fillText('MATCH DEFEAT', PONG.width / 2, PONG.height / 2 + 10);
                 }
 
                 ctx.fillStyle = '#888';
                 ctx.font = '20px monospace';
-                ctx.fillText(`${g.score.player} - ${g.score.ai}`, PONG.width / 2, PONG.height / 2 + 30);
+                ctx.fillText(`Rounds: ${g.rounds.player} - ${g.rounds.ai}`, PONG.width / 2, PONG.height / 2 + 50);
             }
         }
 
