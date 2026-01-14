@@ -378,8 +378,13 @@
     </div>
 
     <div class="section">
-        <h2>Grid View (Box Layout)</h2>
-        <div class="grid-view" id="grid-view"></div>
+        <h2>10µL Box (Rows A-H, Columns 1-12)</h2>
+        <div class="grid-view" id="grid-view-10"></div>
+    </div>
+
+    <div class="section">
+        <h2>100µL Box (Columns A-L, Rows 1-8)</h2>
+        <div class="grid-view" id="grid-view-100"></div>
     </div>
 
     <div class="section">
@@ -550,46 +555,78 @@
         }
 
         function renderGrid() {
-            // Grid layout: 8 rows x 12 columns
-            // 10µL convention: rows A-H, columns 1-12 (coord = rowLetter + colNumber)
-            // 100µL convention: columns A-L, rows 1-8 (coord = colLetter + rowNumber)
-            const rowLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-            const colNumbers = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
-            const colLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
-            const rowNumbers = ['1', '2', '3', '4', '5', '6', '7', '8'];
+            renderGrid10();
+            renderGrid100();
+        }
 
-            const grid = document.getElementById('grid-view');
+        function renderGrid10() {
+            // 10µL box: rows A-H, columns 1-12
+            const rowLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+            const colLabels = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
+
+            const grid = document.getElementById('grid-view-10');
             let html = '';
 
-            // Header row (show both conventions)
-            html += '<div class="grid-cell header"></div>'; // Corner
+            // Header row
+            html += '<div class="grid-cell header"></div>';
             for (let c = 0; c < 12; c++) {
-                html += `<div class="grid-cell header">${colNumbers[c]}<br><span style="color:#ffaa66;font-size:8px">${colLetters[c]}</span></div>`;
+                html += `<div class="grid-cell header">${colLabels[c]}</div>`;
             }
 
             // Data rows
             for (let r = 0; r < 8; r++) {
-                // Row header (show both conventions)
-                html += `<div class="grid-cell header">${rowLetters[r]}<br><span style="color:#ffaa66;font-size:8px">${rowNumbers[r]}</span></div>`;
+                html += `<div class="grid-cell header">${rowLabels[r]}</div>`;
 
                 for (let c = 0; c < 12; c++) {
-                    // Look for tip at this grid position
-                    // 10µL: coord = rowLetter + colNumber (e.g., "A1")
-                    const coord10 = rowLetters[r] + colNumbers[c];
-                    // 100µL: coord = colLetter + rowNumber (e.g., "A1" for col A, row 1)
-                    const coord100 = colLetters[c] + rowNumbers[r];
-
-                    const tip = tips.find(t =>
-                        (t.tipSize === 10 && t.coord === coord10) ||
-                        (t.tipSize === 100 && t.coord === coord100)
-                    );
+                    const coord = rowLabels[r] + colLabels[c];
+                    const tip = tips.find(t => t.tipSize === 10 && t.coord === coord);
 
                     if (tip) {
                         const shortName = tip.ingredient.length > 8
                             ? tip.ingredient.substring(0, 7) + '…'
                             : tip.ingredient;
-                        html += `<div class="grid-cell occupied-${tip.tipSize}"
-                                    onmouseenter="showTooltip(event, '${tip.ingredient} (${tip.tipSize}µL) @ ${tip.coord}')"
+                        html += `<div class="grid-cell occupied-10"
+                                    onmouseenter="showTooltip(event, '${tip.ingredient} @ ${tip.coord}')"
+                                    onmouseleave="hideTooltip()"
+                                    onclick="highlightIngredient('${tip.ingredient}')">${shortName}</div>`;
+                    } else {
+                        html += `<div class="grid-cell"></div>`;
+                    }
+                }
+            }
+
+            grid.innerHTML = html;
+        }
+
+        function renderGrid100() {
+            // 100µL box: columns A-L, rows 1-8
+            const colLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+            const rowLabels = ['1', '2', '3', '4', '5', '6', '7', '8'];
+
+            const grid = document.getElementById('grid-view-100');
+            let html = '';
+
+            // Header row (columns A-L)
+            html += '<div class="grid-cell header"></div>';
+            for (let c = 0; c < 12; c++) {
+                html += `<div class="grid-cell header">${colLabels[c]}</div>`;
+            }
+
+            // Data rows (rows 1-8)
+            for (let r = 0; r < 8; r++) {
+                html += `<div class="grid-cell header">${rowLabels[r]}</div>`;
+
+                for (let c = 0; c < 12; c++) {
+                    // For 100µL: coord = colLetter + rowNumber
+                    const coord = colLabels[c] + rowLabels[r];
+                    const tip = tips.find(t => t.tipSize === 100 && t.coord === coord);
+
+                    if (tip) {
+                        const shortName = tip.ingredient.length > 8
+                            ? tip.ingredient.substring(0, 7) + '…'
+                            : tip.ingredient;
+                        html += `<div class="grid-cell occupied-100"
+                                    onmouseenter="showTooltip(event, '${tip.ingredient} @ ${tip.coord}')"
                                     onmouseleave="hideTooltip()"
                                     onclick="highlightIngredient('${tip.ingredient}')">${shortName}</div>`;
                     } else {
