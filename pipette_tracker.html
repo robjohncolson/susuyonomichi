@@ -359,6 +359,7 @@
             <div class="stat">
                 <div class="stat-value pong-token" id="game-tokens">0</div>
                 <div>Game Tokens</div>
+                <div style="font-size:10px;color:#666" id="token-progress"></div>
             </div>
             <button id="play-pong" onclick="startPong()" disabled>Play Pong!</button>
         </div>
@@ -488,9 +489,9 @@
             if (tipsAddedCount % TIPS_PER_TOKEN === 0) {
                 gameTokens++;
                 localStorage.setItem('pongTokens', gameTokens);
-                updateTokenDisplay();
                 showTokenToast();
             }
+            updateTokenDisplay(); // Always update to show progress
 
             // Clear inputs
             document.getElementById('ingredient').value = '';
@@ -710,6 +711,12 @@
             document.getElementById('game-tokens').textContent = gameTokens;
             const playBtn = document.getElementById('play-pong');
             playBtn.disabled = gameTokens < 1;
+
+            // Show progress toward next token
+            const progress = tipsAddedCount % TIPS_PER_TOKEN;
+            const remaining = TIPS_PER_TOKEN - progress;
+            document.getElementById('token-progress').textContent =
+                progress > 0 ? `${progress}/${TIPS_PER_TOKEN} to next` : '';
         }
 
         function showTokenToast() {
