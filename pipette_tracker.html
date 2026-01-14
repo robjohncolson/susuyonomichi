@@ -419,7 +419,7 @@
         // Pong game token system
         let gameTokens = parseInt(localStorage.getItem('pongTokens') || '0');
         let tipsAddedCount = parseInt(localStorage.getItem('tipsAddedCount') || '0');
-        const TIPS_PER_TOKEN = 5;
+        const TIPS_PER_TOKEN = 3;
 
         function save() {
             localStorage.setItem('pipetteTips', JSON.stringify(tips));
